@@ -6,7 +6,6 @@ require('dotenv').config();
 
 const userModel = require('../model/user');
 const { registerValidation, loginValidation } = require('../validation/validation');
-const user = require('../model/user');
 const auth = require('../middlewares/auth');
 
 router.get('/', async(req, res) => {
@@ -49,61 +48,57 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login', async(req, res) => {
-  const { error } = await loginValidation(req.body);
-  if (error) {
-    return res.status(400).send(error.details[0].message);
-  };
-
-  const user = await userModel.findOne({email: req.body.email});
-  if(!user) {
-    return res.status(400).send('Email not found!!');
-  };
-
-  const validPass = await bcrypt.compare(req.body.password, user.password);
-  if (!validPass) {
-    return res.status(400).send('Incorrect password');
-  } else {
-    const token = jwt.sign({_id: user._id,}, process.env.TOKEN_SECRET);
-    res.header('auth-token', token).send(token)
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name
-      }
-    });
-  };
-});
-
-router.delete('/delete', auth, async (req, res) => {
-  try {
-    const deletedUser = await user.findByIdAndDelete(req.user);
-    res.json(deletedUser);
-  } catch (error) {
-    res.status(500).send('Bad request')
-  }
-});
-
-router.post('/tokenIsValid', async (rea, req) => {
-  try {
-    const token = req.header('auth-token');
-    if(!token) {
-      return res.json(false);
+    const { error } = await loginValidation(req.body);
+    if (error) {
+      return res.status(400).send(error.details[0].message);
     };
-    const verify = jwt.verify(token, process.env.TOKEN_SECRET);
-    if(!verify) {
-      return res.json(false);
-    };
-    const user = await User.findById(verify.id);
+
+    const user = await userModel.findOne({email: req.body.email});
     if(!user) {
-      return res.json(false);
-    } else {
-      return res.json(true)
+      return res.status(400).send('Email not found!!');
+    };
+
+    const validPass = await bcrypt.compare(req.body.password, user.password);
+    if (!validPass) {
+      return res.status(400).send('Incorrect password');
     }
-  } catch (error) {
-    res.status(500).send('Bad request');
-  }
+    try {
+      const token = jwt.sign({_id: user._id,}, process.env.TOKEN_SECRET);
+      res.header('x-auth-token', token).send(token);
+      console.log(user);
+    } catch (error) {
+      console.log(error)
+    } 
+});
+
+  router.delete('/delete', auth, async (req, res) => {
+    try {
+      const deletedUser = await user.findByIdAndDelete(req.user);
+      res.json(deletedUser);
+    } catch (error) {
+      res.status(500).send('Bad request')
+    }
+  });
+
+  router.post('/tokenIsValid', async (res, req) => {
+    try {
+      const token = await req.header('x-auth-token');
+      if(!token) {
+        return res.json(false);
+      };
+      const verify = await jwt.verify(token, process.env.TOKEN_SECRET);
+      if(!verify) {
+        return res.json(false);
+      };
+      const user = await userModel.findById(verify.id);
+      if(!user) {
+        return res.json(false);
+      } else {
+        return res.json(true)
+      }
+    } catch (error) {
+      console.log(error);
+    } 
 });
 
 module.exports = router
