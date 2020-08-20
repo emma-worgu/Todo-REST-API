@@ -5,7 +5,9 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const userModel = require('../model/user');
-const { registerValidation, loginValidation } = require('./auth');
+const { registerValidation, loginValidation } = require('../validation/validation');
+const user = require('../model/user');
+const auth = require('../middlewares/auth');
 
 router.get('/', async(req, res) => {
   try {
@@ -37,8 +39,8 @@ router.post('/register', async (req, res) => {
       email: req.body.email,
       password: hashPassword
     });
-    users.save();
     console.log(users);
+    users.save();
     return res.json(users);
   } catch (error) {
     res.send('Unable to send your request. That is all we know');
@@ -61,11 +63,47 @@ router.post('/login', async(req, res) => {
   if (!validPass) {
     return res.status(400).send('Incorrect password');
   } else {
-    const token = jwt.sign({_id: user._id}, process.env.TOKEN_SECRET);
+    const token = jwt.sign({_id: user._id,}, process.env.TOKEN_SECRET);
     res.header('auth-token', token).send(token)
-    //console.log(user)
-    //return res.json(user);
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name
+      }
+    });
   };
+});
+
+router.delete('/delete', auth, async (req, res) => {
+  try {
+    const deletedUser = await user.findByIdAndDelete(req.user);
+    res.json(deletedUser);
+  } catch (error) {
+    res.status(500).send('Bad request')
+  }
+});
+
+router.post('/tokenIsValid', async (rea, req) => {
+  try {
+    const token = req.header('auth-token');
+    if(!token) {
+      return res.json(false);
+    };
+    const verify = jwt.verify(token, process.env.TOKEN_SECRET);
+    if(!verify) {
+      return res.json(false);
+    };
+    const user = await User.findById(verify.id);
+    if(!user) {
+      return res.json(false);
+    } else {
+      return res.json(true)
+    }
+  } catch (error) {
+    res.status(500).send('Bad request');
+  }
 });
 
 module.exports = router

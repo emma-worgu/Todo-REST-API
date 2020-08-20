@@ -11,7 +11,10 @@ const user = require('./Routes/userRoute');
 (async function() {
   try {
     await mongoose.connect(process.env.DB_CREDENTIALS,
-    { useNewUrlParser: true },
+    { 
+      useNewUrlParser: true,
+      useUnifiedTopology: true 
+    },
     () => {
       console.log(chalk.yellow('DB connected!!'));
     });

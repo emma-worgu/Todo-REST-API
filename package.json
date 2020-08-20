@@ -19,7 +19,8 @@
     "express": "^4.17.1",
     "joi": "^17.2.0",
     "jsonwebtoken": "^8.5.1",
-    "mongoose": "^5.9.28"
+    "mongoose": "^5.9.28",
+    "passport": "^0.4.1"
   },
   "devDependencies": {
     "eslint": "^7.6.0",
