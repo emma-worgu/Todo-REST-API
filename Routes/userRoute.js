@@ -64,41 +64,57 @@ router.post('/login', async(req, res) => {
     }
     try {
       const token = jwt.sign({_id: user._id,}, process.env.TOKEN_SECRET);
-      res.header('x-auth-token', token).send(token);
+      res.header('x-auth-token', token)//.send(token);
       console.log(user);
+      return res.json({
+        token: token,
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name
+        }
+      });
     } catch (error) {
       console.log(error)
     } 
 });
 
-  router.delete('/delete', auth, async (req, res) => {
-    try {
-      const deletedUser = await user.findByIdAndDelete(req.user);
-      res.json(deletedUser);
-    } catch (error) {
-      res.status(500).send('Bad request')
-    }
-  });
+router.delete('/delete', auth, async (req, res) => {
+  try {
+    const deletedUser = await userModel.findByIdAndDelete(req.user, (err) => {
+      console.log('I have deleted');
+    });
+    //deletedUser.delete();
+    console.log(deletedUser);
+    res.json(deletedUser);
+  } catch (error) {
+    res.status(500).send('Bad request');
+    console.log(error);
+  }
+});
 
-  router.post('/tokenIsValid', async (res, req) => {
-    try {
-      const token = await req.header('x-auth-token');
-      if(!token) {
-        return res.json(false);
-      };
-      const verify = await jwt.verify(token, process.env.TOKEN_SECRET);
-      if(!verify) {
-        return res.json(false);
-      };
-      const user = await userModel.findById(verify.id);
-      if(!user) {
-        return res.json(false);
-      } else {
-        return res.json(true)
-      }
-    } catch (error) {
-      console.log(error);
-    } 
+router.post('/tokenIsValid', async (req, res) => {
+  try {
+    const token = await req.header('x-auth-token');
+    //res.json(token);
+    console.log(token)
+    if(!token) {
+      return res.json(false);
+    };
+    const verify = await jwt.verify(token, process.env.TOKEN_SECRET);
+    console.log(verify)
+    if(!verify) {
+      return res.json(false);
+    };
+    const user = await userModel.findById(verify._id);
+    if(!user) {
+      return res.json(false);
+    } else {
+      return res.json(true)
+    }
+  } catch (error) {
+    console.log(error);
+  } 
 });
 
 module.exports = router
